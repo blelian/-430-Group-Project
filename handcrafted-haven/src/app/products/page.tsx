@@ -1,22 +1,23 @@
-// src/app/ui/landing-page/featured-products.tsx
+// src/app/products/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/app/lib/definitions";
 import { getProductsFromDB } from "@/app/lib/data";
 import AddToCartButton from "@/app/ui/AddToCartButton";
 
-export default async function FeaturedProducts() {
+export default async function ProductsPage() {
+  const products = await getProductsFromDB();
   
-  // Obtener productos desde la base de datos
-  const allProducts = await getProductsFromDB();
-  
-  // Tomar los primeros 8 productos como destacados
-  const products = allProducts.slice(0, 8);
   return (
-    <div>
-      <h2 className="text-3xl font-bold text-center my-6">Featured Products</h2>
-      <div className="flex flex-row items-center justify-center max-w-[1200px] mx-auto">
-        <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-4">
+    <div className="max-w-7xl mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6 text-center">All Products</h1>
+
+      {products.length === 0 ? (
+        <p className="text-center text-gray-600 py-20">
+          No products available. Please check back later.
+        </p>
+      ) : (
+        <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {products.map((product: Product) => (
             <li key={product.product_id} className="flex flex-col h-full gap-4 m-2 bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
               <Link href={`/product/${product.product_id}`} className="flex flex-col h-full">
@@ -40,16 +41,20 @@ export default async function FeaturedProducts() {
                   {product.description && (
                     <p className="text-sm text-gray-600">{product.description}</p>
                   )}
-                  <p className="font-bold text-lg">${product.price}</p>
+                  <p className="font-bold text-lg">
+                    {product.price !== null && product.price !== undefined
+                      ? `$${product.price}`
+                      : "Price not set"}
+                  </p>
                 </div>
               </Link>
               <div className="mt-auto">
                 <AddToCartButton product={product} size="small" />
               </div>
             </li>
-          ))} 
+          ))}
         </ul>
-      </div>
+      )}
     </div>
   );
 }
