@@ -44,6 +44,7 @@ export default function NavLinks() {
     { name: "Home", href: "/", icon: HomeIcon },
     { name: "My Account", href: "/account", icon: UserIcon },
     { name: "Shop Products", href: "/shop", icon: ShoppingBagIcon },
+    { name: "Cart", href: "/shop/cart", icon: ShoppingBagIcon }, // Available for logged-in users
     { name: "Logout", onClick: handleLogout },
   ];
 
@@ -51,10 +52,25 @@ export default function NavLinks() {
     { name: "Home", href: "/", icon: HomeIcon },
     { name: "My Shop", href: "/seller/dashboard", icon: UserIcon },
     { name: "Add Product", href: "/seller/products/add", icon: PlusCircleIcon },
+    { name: "Cart", href: "/shop/cart", icon: ShoppingBagIcon }, // Available for logged-in users
     { name: "Logout", onClick: handleLogout },
   ];
 
-  const links = role === "SELLER" ? sellerLinks : role === "CUSTOMER" ? customerLinks : guestLinks;
+  const adminLinks: NavLink[] = [
+    { name: "Home", href: "/", icon: HomeIcon },
+    { name: "Admin Dashboard", href: "/admin", icon: UserIcon },
+    { name: "Cart", href: "/shop/cart", icon: ShoppingBagIcon },
+    { name: "Logout", onClick: handleLogout },
+  ];
+
+  const links =
+    role === "SELLER"
+      ? sellerLinks
+      : role === "CUSTOMER"
+      ? customerLinks
+      : role === "ADMIN"
+      ? adminLinks
+      : guestLinks;
 
   const handleLinkClick = (href?: string, onClick?: () => void) => {
     if (onClick) {

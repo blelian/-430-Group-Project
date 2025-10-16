@@ -1,4 +1,3 @@
-// src/app/ui/sidenav.tsx
 "use client";
 
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
@@ -139,7 +138,10 @@ export default function NavigationBar() {
             </button>
           )}
 
-          <button onClick={() => handleLinkClick("/cart")} className={linkClass(pathname === "/cart")}>Cart</button>
+          {/* Fixed Cart link */}
+          <button onClick={() => handleLinkClick("/shop/cart")} className={linkClass(pathname === "/shop/cart")}>
+            Cart
+          </button>
 
           {!loading && !user && (
             <>
