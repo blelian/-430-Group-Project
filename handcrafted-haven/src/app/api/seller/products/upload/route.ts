@@ -1,11 +1,15 @@
-// src/app/api/seller/products/upload/route.ts
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
 import prisma from "@/prisma/client";
-import fs from "fs/promises";
-import path from "path";
 import { getCurrentUserFromRequest, isSellerOrAdmin, isAdmin } from "@/lib/auth";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export const config = {
   api: {
@@ -19,16 +23,12 @@ export async function POST(req: Request) {
     if (!user?.userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-
     if (!isSellerOrAdmin(user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const formData = await req.formData();
-
-    // Admin may pass sellerId in form data
     const explicitSellerId = String(formData.get("sellerId") || "").trim() || null;
-
     const name = String(formData.get("name") || "");
     const price = String(formData.get("price") || "");
     const category = String(formData.get("category") || "");
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     if (!name || !price) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-    // Resolve seller ID to associate the product with
+    // Determine seller
     let targetSellerId: string | null = null;
     if (isAdmin(user) && explicitSellerId) {
       const s = await prisma.seller.findUnique({ where: { id: explicitSellerId } });
@@ -48,18 +48,30 @@ export async function POST(req: Request) {
       targetSellerId = seller.id;
     }
 
-    // Save image file if present
-    let imagePath: string | null = null;
+    // Upload image to Cloudinary
+    let imageUrl: string | null = null;
     if (imageFile && imageFile.size > 0) {
       const buffer = Buffer.from(await imageFile.arrayBuffer());
-      const uploadDir = path.join(process.cwd(), "public", "artisans");
-      await fs.mkdir(uploadDir, { recursive: true });
+      const result = await cloudinary.uploader.upload_stream({ folder: "artisans" }, async (err, res) => {
+        if (err || !res) throw err || new Error("Cloudinary upload failed");
+        imageUrl = res.secure_url;
+      });
 
-      const safeName = imageFile.name.replace(/\s+/g, "-");
-      const fileName = `${Date.now()}-${safeName}`;
-      const filePath = path.join(uploadDir, fileName);
-      await fs.writeFile(filePath, buffer);
-      imagePath = `/artisans/${fileName}`;
+      // Cloudinary uploader requires a stream
+      const stream = cloudinary.uploader.upload_stream({ folder: "artisans" }, (err, result) => {
+        if (err || !result) throw err || new Error("Cloudinary upload failed");
+        imageUrl = result.secure_url;
+      });
+      const readable = new ReadableStream({
+        start(controller) {
+          controller.enqueue(buffer);
+          controller.close();
+        },
+      });
+      const reader = readable.getReader();
+      const { done, value } = await reader.read();
+      if (value) stream.write(value);
+      stream.end();
     }
 
     const product = await prisma.product.create({
@@ -67,7 +79,7 @@ export async function POST(req: Request) {
         name,
         price: parseFloat(price),
         category: category || null,
-        image: imagePath,
+        image: imageUrl,
         sellerId: targetSellerId,
       },
     });
