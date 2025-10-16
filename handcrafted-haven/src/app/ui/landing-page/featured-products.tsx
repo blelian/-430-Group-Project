@@ -1,33 +1,16 @@
 // src/app/ui/landing-page/featured-products.tsx
 import Link from "next/link";
 import Image from "next/image";
-import prisma from "@/app/lib/prisma";
+import prisma from "@/prisma/client";
 import { Product } from "@/app/lib/definitions";
 
 export default async function FeaturedProducts() {
-  // Fetch distinct non-null categories from products
-  const productCategories = await prisma.product.findMany({
-    select: { category: true },
-    where: { category: { not: null } },
-    distinct: ["category"],
-  });
-
-  // Filter out nulls and normalize
-  const availableCategories = productCategories
-    .map((c) => c.category?.trim())
-    .filter((c): c is string => !!c); // remove nulls and empty strings
-
-  if (availableCategories.length === 0) return null;
-
-  // Fetch products only in available categories
+  // Fetch products that have a non-null category
   const dbProducts = await prisma.product.findMany({
-    where: {
-      category: { in: availableCategories },
-    },
-    take: 50, // max number of products
+    where: { category: { not: null } },
+    take: 10, // max 10 products
   });
 
-  // Map products to your type
   const products: Product[] = dbProducts.map((p) => ({
     id: p.id,
     title: p.name ?? "Untitled Product",
@@ -41,56 +24,41 @@ export default async function FeaturedProducts() {
     },
   }));
 
-  // Group products by category
-  const productsByCategory: Record<string, Product[]> = {};
-  products.forEach((p) => {
-    if (!productsByCategory[p.category]) productsByCategory[p.category] = [];
-    productsByCategory[p.category].push(p);
-  });
+  // Randomize order
+  const shuffledProducts = products.sort(() => Math.random() - 0.5);
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold text-center my-6">Featured Products</h2>
-      {availableCategories.map((cat) => (
-        <section key={cat} className="my-6">
-          <h3 className="text-xl font-semibold mb-4 text-center">{cat}</h3>
-          <div className="flex flex-row items-center justify-center max-w-[1200px] mx-auto">
-            <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-4">
-              {(productsByCategory[cat] || []).map((product) => (
-                <Link key={product.id} href={`/product/${product.id}`}>
-                  <li className="flex flex-col h-full gap-4 m-2 bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-300 cursor-pointer">
-                    <span className="relative w-full h-40 rounded-lg bg-gray-100">
-                      {product.image ? (
-                        <Image
-                          src={product.image}
-                          alt={product.title || "Product Image"}
-                          fill
-                          className="object-contain"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
-                          No Image
-                        </div>
-                      )}
-                    </span>
-                    <div className="break-words">
-                      <h3 className="text-lg font-semibold">{product.title}</h3>
-                      {product.description && (
-                        <p className="text-sm text-gray-600">{product.description}</p>
-                      )}
-                      <p className="font-bold text-lg">${product.price}</p>
-                      <p className="text-sm text-yellow-600">
-                        ⭐ {product.rating.rate.toFixed(1)} ({product.rating.count})
-                      </p>
-                    </div>
-                  </li>
-                </Link>
-              ))}
-            </ul>
-          </div>
-        </section>
-      ))}
+    <div className="max-w-[1200px] mx-auto p-4">
+      <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {shuffledProducts.map((product: Product) => (
+          <Link key={product.id} href={`/product/${product.id}`}>
+            <li className="flex flex-col h-full gap-4 bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+              <div className="relative w-full h-40 rounded-lg bg-gray-100">
+                {product.image ? (
+                  <Image
+                    src={product.image}
+                    alt={product.title || "Product Image"}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                    No Image
+                  </div>
+                )}
+              </div>
+              <div className="break-words">
+                <h3 className="text-lg font-semibold">{product.title}</h3>
+                <p className="font-bold text-lg">${product.price}</p>
+                <p className="text-sm text-yellow-600">
+                  ⭐ {product.rating.rate.toFixed(1)} ({product.rating.count})
+                </p>
+              </div>
+            </li>
+          </Link>
+        ))}
+      </ul>
     </div>
   );
 }
