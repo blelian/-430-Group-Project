@@ -25,15 +25,16 @@ const allCategories: Category[] = [
 ];
 
 export default async function Categories() {
-  // Fetch distinct categories from products table
+  // Fetch distinct non-null categories from products
   const productCategories = await prisma.product.findMany({
     select: { category: true },
+    where: { category: { not: null } },
     distinct: ["category"],
   });
 
   const availableCategories = allCategories.filter((cat) =>
     productCategories.some(
-      (p) => p.category?.toLowerCase() === cat.name.toLowerCase()
+      (p) => p.category?.trim().toLowerCase() === cat.name.toLowerCase()
     )
   );
 
