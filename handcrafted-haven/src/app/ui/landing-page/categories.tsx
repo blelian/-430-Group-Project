@@ -32,13 +32,18 @@ export default async function Categories() {
     distinct: ["category"],
   });
 
-  const availableCategories = allCategories.filter((cat) =>
-    productCategories.some(
-      (p) => p.category?.trim().toLowerCase() === cat.name.toLowerCase()
-    )
+  // Build a trimmed, lowercased set for robust comparisons
+  const populatedSet = new Set(
+    productCategories
+      .map((c) => c.category?.trim().toLowerCase())
+      .filter((v): v is string => !!v)
   );
 
-  if (availableCategories.length === 0) return null; // hide if no products
+  const availableCategories = allCategories.filter((cat) =>
+    populatedSet.has(cat.name.toLowerCase())
+  );
+
+  if (availableCategories.length === 0) return null; // nothing populated
 
   return (
     <section className="my-10">
