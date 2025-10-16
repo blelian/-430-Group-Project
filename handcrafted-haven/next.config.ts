@@ -9,11 +9,19 @@ const nextConfig: NextConfig = {
 
   images: {
     remotePatterns: [
+      // Existing fake store API (keep if still needed)
       {
         protocol: "https",
         hostname: "fakestoreapi.com",
         port: "",
         pathname: "/img/**",
+      },
+      // ✅ Cloudinary images
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        port: "",
+        pathname: "/**",
       },
     ],
   },
